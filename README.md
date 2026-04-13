@@ -1,73 +1,52 @@
 # flux-coverage
 
-> Bytecode coverage analyzer measuring instruction, branch, path, and register coverage for FLUX programs.
+FLUX coverage analyzer — comprehensive bytecode coverage analysis for FLUX VM programs.
 
-## What This Is
+## Features
 
-`flux-coverage` is a Python module that **measures how much of a FLUX bytecode program was actually executed** — it tracks which instruction addresses were hit, which branches were taken/not-taken, how many unique execution paths occurred, and which registers were used.
+- **Opcode coverage** — tracks which of 247 FLUX opcodes are exercised, with hit counts and first-hit PCs
+- **Instruction coverage** — PC-level hit tracking showing what percentage of instructions were reached
+- **Branch coverage** — per-branch-point tracking for conditional opcodes (BEQ, BNE, BLT, BGE) with taken/not-taken counts
+- **Register coverage** — tracks which registers are read and written, with read vs. written distinction
+- **Path coverage** — unique execution path identification via SHA-256 hashing
+- **Multiple report formats** — Terminal, Markdown, JSON, and HTML with styled progress bars
+- **Coverage diffing** — compare two coverage runs to see what improved/regressed
+- **Overall score** — weighted composite score across all metrics
+- **Pytest integration** — `FluxCoveragePlugin` for collecting and aggregating coverage across test sessions
 
-## Role in the FLUX Ecosystem
-
-Coverage ensures comprehensive testing of agent programs:
-
-- **`flux-timeline`** shows execution order; coverage shows breadth
-- **`flux-profiler`** measures frequency; coverage measures completeness
-- **`flux-debugger`** helps find bugs; coverage finds untested code
-- **`flux-signatures`** detects patterns; coverage verifies they're all exercised
-- **`flux-decompiler`** shows all instructions; coverage shows which ran
-
-## Key Features
-
-| Feature | Description |
-|---------|-------------|
-| **Instruction Coverage** | Percentage of instructions that were executed |
-| **Branch Coverage** | Both-way coverage (taken AND not-taken) for conditional branches |
-| **Path Tracking** | Count of unique execution paths through the program |
-| **Register Coverage** | Which registers were read/written during execution |
-| **Markdown Reports** | Formatted coverage report table |
-| **Multiple Run Support** | Create fresh collector per test input for differential coverage |
-| **Factorial Validation** | Known-answer tests (e.g., 6! = 720) verify both correctness and coverage |
-
-## Quick Start
+## Usage
 
 ```python
-from flux_coverage import CoverageCollector
+from coverage import CoverageCollector, collect_coverage, diff_reports, ReportFormat
 
-# Analyze coverage of a factorial program
-bytecode = [0x18, 0, 6, 0x18, 1, 1, 0x22, 1, 1, 0, 0x09, 0, 0x3D, 0, -6, 0, 0x00]
-collector = CoverageCollector(bytecode)
+# Basic usage
+c = CoverageCollector([0x18, 0, 10, 0x18, 1, 20, 0x20, 2, 0, 1, 0x00])
+regs, report = c.run()
+print(report.to_terminal())
+print(report.to_html())   # Styled HTML report
+print(report.to_json())   # Machine-readable JSON
+print(report.to_markdown())  # Markdown table
 
-regs, report = collector.run()
+# Convenience function
+report = collect_coverage([0x18, 0, 42, 0x00], label="test1")
 
-print(f"Instruction coverage: {report.instruction_pct:.1f}%")
-print(f"Branch coverage: {report.branch_pct:.1f}%")
-print(f"Register coverage: {report.register_pct:.1f}%")
-print(f"Unique paths: {report.unique_paths}")
-
-# Generate report
-print(report.to_markdown())
-
-# Test with different inputs for differential coverage
-collector2 = CoverageCollector(bytecode)
-_, report2 = collector2.run(initial_regs={0: 1})  # n=1 instead of n=6
+# Coverage diffing
+r1 = collect_coverage([0x18, 0, 42, 0x00])
+r2 = collect_coverage([0x18, 0, 10, 0x18, 1, 20, 0x20, 2, 0, 1, 0x00])
+d = diff_reports(r1, r2)
+print(d.to_terminal())
+print(d.to_markdown())
 ```
 
-## Running Tests
+## Report Metrics
 
-```bash
-python -m pytest tests/ -v
-# or
-python coverage.py
-```
+| Metric | Description |
+|--------|-------------|
+| Instructions | PC-level hit ratio |
+| Branches | Taken + not-taken for conditional jumps |
+| Registers | How many of 64 registers are read/written |
+| Opcodes | How many of 247 opcodes are exercised |
+| Paths | Unique execution path count |
+| Overall Score | Weighted composite (30% instruction, 30% branch, 30% opcode, 10% register) |
 
-## Related Fleet Repos
-
-- [`flux-timeline`](https://github.com/SuperInstance/flux-timeline) — Execution tracing
-- [`flux-profiler`](https://github.com/SuperInstance/flux-profiler) — Performance profiling
-- [`flux-debugger`](https://github.com/SuperInstance/flux-debugger) — Step debugger
-- [`flux-signatures`](https://github.com/SuperInstance/flux-signatures) — Pattern detection
-- [`flux-decompiler`](https://github.com/SuperInstance/flux-decompiler) — Bytecode decompilation
-
-## License
-
-Part of the [SuperInstance](https://github.com/SuperInstance) FLUX fleet.
+29 tests passing.
